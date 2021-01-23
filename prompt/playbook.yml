@@ -1,0 +1,44 @@
+---
+- hosts: localhost
+
+  ####################################################
+  ### HOW TO USE
+  #
+  # If you run this without arguments, you will get a prompt which will ask which config you want.
+  # You can skip the prompt by setting `config_type` as CLI argument, e.g. `--extra-vars "config_type=dot_bot"`
+  # See variable references in `config_type_options` for allowed options.
+  ####################################################
+
+  vars:
+    option_dot_bot: "dot_bot"
+    option_lts_internal: "lts_internal"
+    config_type_options:
+      - "{{ option_dot_bot }}"
+      - "{{ option_lts_internal }}"
+
+  # Prompt will be SKIPPED if 'config_type' is set as argument already, e.g. `--extra-vars "config_type=dot_bot"`
+  vars_prompt:
+    - name: config_type
+      prompt: "Which config shall be used? Options: {{ config_type_options }}, default is"
+      private: no
+      default: "{{ config_type_options[0] }}"
+
+  pre_tasks:
+  - name: "Assert 'config_type' is set"
+    assert:
+      that:
+        - config_type is defined
+      success_msg: "Variable 'config_type' is defined"
+      fail_msg: "Variable 'config_type' must be set"
+  - name: "Assert 'config_type' is one of {{ config_type_options }}"
+    assert:
+      that:
+        - config_type in config_type_options
+      success_msg: "Prometheus will be configured for {{ config_type }}"
+      fail_msg: "Variable 'config_type' must be one of {{ config_type_options }}, got: '{{ config_type }}'"
+
+  roles:
+    - role: "config-roles/config-one"
+      when: config_type == option_dot_bot
+    - role: "config-roles/config-two"
+      when: config_type == option_lts_internal
